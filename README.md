@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # **Workstudent-Job-Scraper**
 
 ## **Project Overview**
