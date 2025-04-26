@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'my-python-scraper'
+        CONTAINER_NAME = 'scraper-container'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                // If you're pulling from Git
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh 'docker build -t $IMAGE_NAME .'
+                }
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                script {
+                    // Run the container (detached mode) and remove any existing
+                    sh '''
+                    docker rm -f $CONTAINER_NAME || true
+                    docker run --name $CONTAINER_NAME -d $IMAGE_NAME
+                    '''
+                }
+            }
+        }
+
+        stage('Test Container') {
+            steps {
+                script {
+                    // You can test by checking logs or a simple command
+                    sh 'docker logs $CONTAINER_NAME'
+                }
+            }
+        }
+
+    }
+
+    post {
+        always {
+            script {
+                // Clean up after running
+                sh 'docker rm -f $CONTAINER_NAME || true'
+                sh 'docker rmi -f $IMAGE_NAME || true'
+            }
+        }
+    }
+}
