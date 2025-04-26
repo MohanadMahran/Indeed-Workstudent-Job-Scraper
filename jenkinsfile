@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'my-python-scraper'
+        IMAGE_NAME = 'mohanadkombar/indeed-workstudent-job-scraper'  // Your full dockerhub repo
         CONTAINER_NAME = 'scraper-container'
+        DOCKER_HUB_CREDENTIALS_ID = 'docker-hub-credentials' // Jenkins ID for your DockerHub credentials
     }
 
     stages {
         stage('Checkout Code') {
             steps {
-                // If you're pulling from Git
                 checkout scm
             }
         }
@@ -25,7 +25,6 @@ pipeline {
         stage('Run Container') {
             steps {
                 script {
-                    // Run the container (detached mode) and remove any existing
                     sh '''
                     docker rm -f $CONTAINER_NAME || true
                     docker run --name $CONTAINER_NAME -d $IMAGE_NAME
@@ -37,18 +36,29 @@ pipeline {
         stage('Test Container') {
             steps {
                 script {
-                    // You can test by checking logs or a simple command
                     sh 'docker logs $CONTAINER_NAME'
                 }
             }
         }
 
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "$DOCKER_HUB_CREDENTIALS_ID", usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                        sh '''
+                        echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                        docker push $IMAGE_NAME
+                        docker logout
+                        '''
+                    }
+                }
+            }
+        }
     }
 
     post {
         always {
             script {
-                // Clean up after running
                 sh 'docker rm -f $CONTAINER_NAME || true'
                 sh 'docker rmi -f $IMAGE_NAME || true'
             }
